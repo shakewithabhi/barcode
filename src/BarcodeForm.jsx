@@ -10,7 +10,7 @@ const BarcodeForm = () => {
   const [partner, setPartner] = useState("");
 
   const GOOGLE_SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbzhrzsfhxnthRa59vSUANqrL6JYpQJxyJr5ofNtgCM4nRolAF5ayUm610lR6dXdHeYb/exec";
+    "https://script.google.com/macros/s/AKfycbzsbJybSrD6XsoNIu85wY_Q0NMhFqWCNaA3myTSKA9xQDsZAFXMIGeGd5BqiIazVBiZdA/exec";
 
   const startScanner = async () => {
     if (scanning) return;
