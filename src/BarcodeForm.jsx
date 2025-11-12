@@ -93,7 +93,7 @@ import { Html5Qrcode } from "html5-qrcode";
   return (
     <div className="flex flex-col items-center justify-center p-6 bg-black text-white min-h-screen">
       <h2 className="text-xl font-bold mb-4 text-red-500">
-         <img className="max-w-sm" src="https://cdn.shopify.com/s/files/1/0719/1930/4999/files/YOUTH_ROBE_on_Black_BG.jpg?v=1762946995" alt="" />
+         <img className="max-w-2xs" src="https://cdn.shopify.com/s/files/1/0719/1930/4999/files/YOUTH_ROBE_on_Black_BG.jpg?v=1762946995" alt="" />
       </h2>
 
       <div
