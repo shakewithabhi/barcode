@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 
-const BarcodeForm = () => {
+ const BarcodeForm = () => {
   const scannerRef = useRef(null);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState("");
@@ -93,16 +93,16 @@ const BarcodeForm = () => {
   return (
     <div className="flex flex-col items-center justify-center p-6 bg-black text-white min-h-screen">
       <h2 className="text-xl font-bold mb-4 text-red-500">
-        📸 Barcode Scanner
+         <img className="max-w-sm" src="https://cdn.shopify.com/s/files/1/0719/1930/4999/files/YOUTH_ROBE_on_Black_BG.jpg?v=1762946995" alt="" />
       </h2>
 
       <div
         id="reader"
-        className="w-72 h-72 border-2 border-red-500 rounded-lg mb-4"
+        className="w-72 h-44 border-2  border-gray-500 rounded-3xl mb-4"
       ></div>
 
       {scanResult && (
-        <div className="p-2 bg-red-900 border border-red-700 rounded mb-4 w-72 text-center">
+        <div className="p-2 bg-red-900 border border-gray-700 rounded-3xl mb-4 w-72 text-center">
           <p>
             <strong>Scanned Data:</strong> {scanResult}
           </p>
@@ -113,7 +113,7 @@ const BarcodeForm = () => {
         <select
           value={user}
           onChange={(e) => setUser(e.target.value)}
-          className="p-2 border border-red-600 bg-black text-white rounded"
+          className="p-2 border border-gray-600 bg-black text-white rounded-2xl"
         >
           <option value="">Select User</option>
           <option value="Durga">Durga</option>
@@ -127,7 +127,7 @@ const BarcodeForm = () => {
         <select
           value={partner}
           onChange={(e) => setPartner(e.target.value)}
-          className="p-2 border border-red-600 bg-black text-white rounded"
+          className="p-2 border border-gray-600 bg-black text-white rounded-2xl"
         >
           <option value="">Select Delivery Partner</option>
           <option value="Delhivery">Delhivery</option>
@@ -164,7 +164,7 @@ const BarcodeForm = () => {
         onClick={handleSubmit}
         disabled={loading}
         className={`mt-4 px-4 py-2 rounded text-white ${
-          loading ? "bg-gray-700" : "bg-red-600 hover:bg-red-700"
+          loading ? "bg-gray-700" : "bg-blue-600 hover:bg-blue-700"
         }`}
       >
         {loading ? "Submitting..." : "Submit to Google Sheet"}
