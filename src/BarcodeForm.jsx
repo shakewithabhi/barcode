@@ -1,20 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 
-const GOOGLE_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbw0RU8P6g4zRE3cRRwF2A2QlfwcOHSG65NxX1HQRvwpCadapwFb6fPqFqdcepbIL-wuzg/exec";
-
 const BarcodeForm = () => {
   const scannerRef = useRef(null);
   const [scanning, setScanning] = useState(false);
-  const [scannedCodes, setScannedCodes] = useState([]);
-  const [count, setCount] = useState(0);
-  const [scanResult, setScanResult] = useState("");
-  const [highlighted, setHighlighted] = useState(""); // for highlight animation
+  const [scanResults, setScanResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState("");
   const [partner, setPartner] = useState("");
-  const inactivityTimer = useRef(null);
+
+  const GOOGLE_SCRIPT_URL =
+    "https://script.google.com/macros/s/AKfycbzYq72lTVz9hOnHmaDx4zVeb4_MU1iSaz8iKcFc9yqn34hCzAHKEEUUpC0SRh5WDw7NaA/exec";
 
   const startScanner = async () => {
     if (scanning) return;
@@ -25,8 +21,9 @@ const BarcodeForm = () => {
     try {
       const devices = await Html5Qrcode.getCameras();
       if (!devices.length) throw new Error("No camera found");
-      const backCamera = devices.find((d) =>
-        d.label.toLowerCase().includes("back")
+
+      const backCamera = devices.find((device) =>
+        device.label.toLowerCase().includes("back")
       );
       const cameraId = backCamera ? backCamera.id : devices[0].id;
 
@@ -34,24 +31,10 @@ const BarcodeForm = () => {
         { deviceId: { exact: cameraId } },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-          const cleaned = decodedText.replace(/\D/g, "");
-          if (!cleaned) return;
-
-          setScanResult(cleaned);
-          setHighlighted(cleaned); // trigger highlight
-
-          setScannedCodes((prev) => {
-            if (!prev.includes(cleaned)) {
-              const updated = [cleaned, ...prev];
-              setCount(updated.length);
-              return updated;
-            }
-            return prev;
-          });
-
-          // Auto-stop after 10s of inactivity
-          if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
-          inactivityTimer.current = setTimeout(() => stopScanner(), 10000);
+          const numericData = decodedText.replace(/\D/g, "");
+          setScanResults((prev) =>
+            prev.includes(numericData) ? prev : [...prev, numericData]
+          );
         },
         (errorMessage) => console.warn("Scanning error:", errorMessage)
       );
@@ -72,7 +55,6 @@ const BarcodeForm = () => {
       }
     }
     setScanning(false);
-    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
   };
 
   useEffect(() => {
@@ -80,89 +62,85 @@ const BarcodeForm = () => {
   }, []);
 
   const handleSubmit = async () => {
-    if (scannedCodes.length === 0) return alert("No barcodes scanned yet!");
+    if (!scanResults.length) return alert("No barcodes scanned yet!");
     if (!user) return alert("Please select a User!");
     if (!partner) return alert("Please select a Delivery Partner!");
 
     setLoading(true);
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const form = new FormData();
+      form.append("user", user);
+      form.append("partner", partner);
+      form.append("barcodes", JSON.stringify(scanResults));
 
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          barcodes: scannedCodes,
-          user,
-          partner,
-        }),
-        signal: controller.signal,
+        body: form,
       });
 
-      clearTimeout(timeout);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const result = await response.json();
-      if (result.result === "success") {
-        alert("✅ Data successfully added to Google Sheet!");
-        setScannedCodes([]);
-        setScanResult("");
-        setCount(0);
+
+      if (result.status === "success") {
+        alert(`✅ Successfully added ${scanResults.length} barcode(s)!`);
+        setScanResults([]);
         setUser("");
         setPartner("");
       } else {
         alert("❌ Failed: " + (result.message || "Unknown error"));
       }
     } catch (error) {
-      console.error("Fetch error:", error);
-      alert("❌ Failed to submit. Possible CORS or network issue.");
+      console.error("Error sending data:", error);
+      alert("❌ Error sending data: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const removeCode = (code) => {
+    setScanResults((prev) => prev.filter((item) => item !== code));
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center p-4 bg-black text-white min-h-screen">
+    <div className="flex flex-col items-center justify-center p-6 bg-black text-white min-h-screen">
       <h2 className="text-xl font-bold mb-4 text-red-500">
-        Barcode Scanner
+        <img
+          className="max-w-32"
+          src="https://cdn.shopify.com/s/files/1/0719/1930/4999/files/YOUTH_ROBE_on_Black_BG.jpg?v=1762946995"
+          alt=""
+        />
       </h2>
 
-      <div
-        id="reader"
-        className="w-72 h-44 border-2 border-gray-500 rounded-3xl mb-4"
-      ></div>
+      <div id="reader" className="w-72 h-44 border-2 border-gray-500 rounded-3xl mb-4"></div>
 
-      <div className="p-3 bg-gray-900 border border-gray-700 rounded-3xl mb-4 w-72">
-        <h3 className="font-bold text-red-500">Scanned Codes ({count})</h3>
-        {scannedCodes.length === 0 ? (
-          <p className="text-gray-400">No codes scanned yet</p>
-        ) : (
-          <ul className="mt-2 text-sm max-h-40 overflow-y-auto">
-            {scannedCodes.map((code, index) => (
+      {/* --- UPDATED SCANNED LIST (UI COLORS SAME) --- */}
+      {scanResults.length > 0 && (
+        <div className="p-2 bg-red-900 border border-gray-700 rounded-3xl mb-4 w-72 text-center">
+          <strong>Scanned Codes ({scanResults.length}):</strong>
+
+          <ul className="mt-2 space-y-2">
+            {scanResults.map((code, idx) => (
               <li
-                key={index}
-                className={`border-b border-gray-700 py-1 cursor-pointer rounded ${
-                  highlighted === code ? "bg-green-600 animate-pulse" : ""
-                }`}
-                onClick={() => {
-                  const updated = scannedCodes.filter((c) => c !== code);
-                  setScannedCodes(updated);
-                  setCount(updated.length);
-                }}
+                key={idx}
+                className="flex justify-between items-center bg-black p-2 rounded-xl border border-gray-700"
               >
-                {code}
+                <span>{code}</span>
+
+                {/* DELETE BUTTON */}
+                <button
+                  onClick={() => removeCode(code)}
+                  className="text-red-400 hover:text-red-500 font-bold"
+                >
+                  ❌
+                </button>
               </li>
             ))}
           </ul>
-        )}
-      </div>
-
-      {scanResult && (
-        <div className="p-2 bg-red-900 border border-gray-700 rounded-3xl mb-4 w-72 text-center">
-          <strong>Scanned:</strong> {scanResult}
         </div>
       )}
+      {/* --- END UPDATED SECTION --- */}
 
       <div className="flex flex-col gap-3 mb-4 w-72">
         <select
@@ -199,34 +177,21 @@ const BarcodeForm = () => {
         </select>
       </div>
 
-      <div className="flex gap-3">
-        {!scanning ? (
-          <button
-            onClick={startScanner}
-            className="px-4 py-2 bg-red-600 rounded hover:bg-red-700"
-          >
-            Start Scanning
-          </button>
-        ) : (
-          <button
-            onClick={stopScanner}
-            className="px-4 py-2 bg-red-800 rounded hover:bg-red-900"
-          >
-            Stop Scanning
-          </button>
-        )}
-
+      {!scanning ? (
         <button
-          onClick={() => {
-            setScannedCodes([]);
-            setCount(0);
-            setScanResult("");
-          }}
-          className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600"
+          onClick={startScanner}
+          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
         >
-          Clear All
+          Start Scanning
         </button>
-      </div>
+      ) : (
+        <button
+          onClick={stopScanner}
+          className="px-4 py-2 bg-red-800 text-white rounded hover:bg-red-900"
+        >
+          Stop Scanning
+        </button>
+      )}
 
       <button
         onClick={handleSubmit}
