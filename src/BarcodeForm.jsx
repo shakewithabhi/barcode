@@ -14,6 +14,7 @@ const BarcodeForm = () => {
 
   const startScanner = async () => {
     if (scanning) return;
+
     const html5QrCode = new Html5Qrcode("reader");
     scannerRef.current = html5QrCode;
     setScanning(true);
@@ -22,20 +23,32 @@ const BarcodeForm = () => {
       const devices = await Html5Qrcode.getCameras();
       if (!devices.length) throw new Error("No camera found");
 
-      const backCamera = devices.find((device) =>
-        device.label.toLowerCase().includes("back")
+      const backCamera = devices.find((d) =>
+        d.label.toLowerCase().includes("back")
       );
+
       const cameraId = backCamera ? backCamera.id : devices[0].id;
 
       await html5QrCode.start(
         { deviceId: { exact: cameraId } },
         { fps: 10, qrbox: { width: 250, height: 250 } },
+
         (decodedText) => {
           const numericData = decodedText.replace(/\D/g, "");
-          setScanResults((prev) =>
-            prev.includes(numericData) ? prev : [...prev, numericData]
-          );
+
+          const now = new Date();
+          const formattedTime = now.toLocaleString("en-IN", {
+            dateStyle: "medium",
+            timeStyle: "short",
+          });
+
+          setScanResults((prev) => {
+            if (prev.some((item) => item.code === numericData)) return prev;
+
+            return [...prev, { code: numericData, time: formattedTime }];
+          });
         },
+
         (errorMessage) => console.warn("Scanning error:", errorMessage)
       );
     } catch (err) {
@@ -100,11 +113,12 @@ const BarcodeForm = () => {
   };
 
   const removeCode = (code) => {
-    setScanResults((prev) => prev.filter((item) => item !== code));
+    setScanResults((prev) => prev.filter((item) => item.code !== code));
   };
 
   return (
     <div className="flex flex-col items-center justify-center p-6 bg-black text-white min-h-screen">
+
       <h2 className="text-xl font-bold mb-4 text-red-500">
         <img
           className="max-w-32"
@@ -113,24 +127,34 @@ const BarcodeForm = () => {
         />
       </h2>
 
-      <div id="reader" className="w-72 h-44 border-2 border-gray-500 rounded-3xl mb-4"></div>
+      {/* FIXED-SIZE CAMERA CONTAINER (stops resizing) */}
+      <div className="relative w-full max-w-xs mx-auto">
+  <div
+    id="reader"
+    className="w-full h-64 border-2 border-gray-500 rounded-3xl overflow-hidden mb-4"
+    style={{ maxHeight: "260px", minHeight: "240px" }}
+  ></div>
+</div>
 
-      {/* --- UPDATED SCANNED LIST (UI COLORS SAME) --- */}
+
+      {/* SCANNED LIST */}
       {scanResults.length > 0 && (
         <div className="p-2 bg-red-900 border border-gray-700 rounded-3xl mb-4 w-72 text-center">
           <strong>Scanned Codes ({scanResults.length}):</strong>
 
           <ul className="mt-2 space-y-2">
-            {scanResults.map((code, idx) => (
+            {scanResults.map((entry, idx) => (
               <li
                 key={idx}
                 className="flex justify-between items-center bg-black p-2 rounded-xl border border-gray-700"
               >
-                <span>{code}</span>
+                <div className="flex flex-col text-left">
+                  <span className="font-semibold">{entry.code}</span>
+                  <span className="text-xs text-gray-400">{entry.time}</span>
+                </div>
 
-                {/* DELETE BUTTON */}
                 <button
-                  onClick={() => removeCode(code)}
+                  onClick={() => removeCode(entry.code)}
                   className="text-red-400 hover:text-red-500 font-bold"
                 >
                   ❌
@@ -140,7 +164,6 @@ const BarcodeForm = () => {
           </ul>
         </div>
       )}
-      {/* --- END UPDATED SECTION --- */}
 
       <div className="flex flex-col gap-3 mb-4 w-72">
         <select
