@@ -10,7 +10,7 @@ const BarcodeForm = () => {
   const [partner, setPartner] = useState("");
 
   const GOOGLE_SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbzYq72lTVz9hOnHmaDx4zVeb4_MU1iSaz8iKcFc9yqn34hCzAHKEEUUpC0SRh5WDw7NaA/exec";
+    "https://script.google.com/macros/s/AKfycbz6owqe6s5Q3RvLm1KaHC857gfbpSGVCwT5A40dshYS9zqFH_ohj47DEhDraVDAAEh82g/exec";
 
   const startScanner = async () => {
     if (scanning) return;
@@ -36,16 +36,9 @@ const BarcodeForm = () => {
         (decodedText) => {
           const numericData = decodedText.replace(/\D/g, "");
 
-          const now = new Date();
-          const formattedTime = now.toLocaleString("en-IN", {
-            dateStyle: "medium",
-            timeStyle: "short",
-          });
-
           setScanResults((prev) => {
-            if (prev.some((item) => item.code === numericData)) return prev;
-
-            return [...prev, { code: numericData, time: formattedTime }];
+            if (prev.includes(numericData)) return prev;
+            return [...prev, numericData];
           });
         },
 
@@ -112,13 +105,13 @@ const BarcodeForm = () => {
     }
   };
 
+  // ✅ FIXED REMOVE FUNCTION
   const removeCode = (code) => {
-    setScanResults((prev) => prev.filter((item) => item.code !== code));
+    setScanResults((prev) => prev.filter((item) => item !== code));
   };
 
   return (
     <div className="flex flex-col items-center justify-center p-6 bg-black text-white min-h-screen">
-
       <h2 className="text-xl font-bold mb-4 text-red-500">
         <img
           className="max-w-32"
@@ -127,15 +120,14 @@ const BarcodeForm = () => {
         />
       </h2>
 
-      {/* FIXED-SIZE CAMERA CONTAINER (stops resizing) */}
+      {/* FIXED-SIZE CAMERA CONTAINER */}
       <div className="relative w-full max-w-xs mx-auto">
-  <div
-    id="reader"
-    className="w-full h-64 border-2 border-gray-500 rounded-3xl overflow-hidden mb-4"
-    style={{ maxHeight: "260px", minHeight: "240px" }}
-  ></div>
-</div>
-
+        <div
+          id="reader"
+          className="w-full h-64 border-2 border-gray-500 rounded-3xl overflow-hidden mb-4"
+          style={{ maxHeight: "260px", minHeight: "240px" }}
+        ></div>
+      </div>
 
       {/* SCANNED LIST */}
       {scanResults.length > 0 && (
@@ -148,13 +140,10 @@ const BarcodeForm = () => {
                 key={idx}
                 className="flex justify-between items-center bg-black p-2 rounded-xl border border-gray-700"
               >
-                <div className="flex flex-col text-left">
-                  <span className="font-semibold">{entry.code}</span>
-                  <span className="text-xs text-gray-400">{entry.time}</span>
-                </div>
+                <span className="font-semibold">{entry}</span>
 
                 <button
-                  onClick={() => removeCode(entry.code)}
+                  onClick={() => removeCode(entry)}
                   className="text-red-400 hover:text-red-500 font-bold"
                 >
                   ❌
@@ -165,6 +154,7 @@ const BarcodeForm = () => {
         </div>
       )}
 
+      {/* Selects */}
       <div className="flex flex-col gap-3 mb-4 w-72">
         <select
           value={user}
